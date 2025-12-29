@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rover Controller</title>
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #111;
+        background: #f2f2f2;
+      }
+
+      body {
+        margin: 0;
+        padding: 2rem;
+        display: flex;
+        min-height: 100vh;
+      }
+
+      .controller {
+        margin: auto;
+        width: min(960px, 100%);
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.15);
+        padding: 2rem;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        align-items: start;
+      }
+
+      .control-column {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .control-column button {
+        font-size: 1.25rem;
+        padding: 1.5rem 1rem;
+        border-radius: 0.8rem;
+        border: none;
+        background: #0059ff;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+
+      .control-column button:nth-child(2) {
+        background: #ff6b00;
+      }
+
+      .control-column button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2);
+      }
+
+      .center-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .battery {
+        padding: 1rem;
+        border-radius: 0.8rem;
+        background: #f7f9fc;
+        border: 1px solid #e1e4ea;
+      }
+
+      .battery h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.1rem;
+      }
+
+      .battery-bar {
+        height: 24px;
+        border-radius: 12px;
+        background: #dfe3eb;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .battery-bar span {
+        position: absolute;
+        top: 0;
+        right: 0.75rem;
+        height: 100%;
+        line-height: 24px;
+        font-weight: 600;
+        color: #0f1c2e;
+      }
+
+      .battery-level {
+        height: 100%;
+        width: 75%;
+        background: linear-gradient(90deg, #05c46b, #0be881);
+      }
+
+      .lights-panel {
+        padding: 1rem;
+        border-radius: 0.8rem;
+        background: #f7f9fc;
+        border: 1px solid #e1e4ea;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .lights-panel label {
+        font-weight: 600;
+      }
+
+      .switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+      }
+
+      .switch input[type="checkbox"] {
+        width: 46px;
+        height: 24px;
+        appearance: none;
+        border-radius: 999px;
+        background: #cfd6e3;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .switch input[type="checkbox"]::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.2s;
+      }
+
+      .switch input[type="checkbox"]:checked {
+        background: #05c46b;
+      }
+
+      .switch input[type="checkbox"]:checked::after {
+        transform: translateX(22px);
+      }
+
+      @media (max-width: 768px) {
+        .controller {
+          grid-template-columns: 1fr;
+        }
+
+        .control-column button {
+          padding: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="controller">
+      <section class="control-column" aria-label="Forward and backward controls">
+        <button type="button">Forward</button>
+        <button type="button">Backward</button>
+      </section>
+
+      <section class="center-panel">
+        <div class="battery" aria-label="Battery level">
+          <h2>Battery</h2>
+          <div class="battery-bar">
+            <div class="battery-level" aria-hidden="true"></div>
+            <span>75%</span>
+          </div>
+        </div>
+
+        <div class="lights-panel" aria-label="Lighting controls">
+          <label for="color-picker">LED Color</label>
+          <input id="color-picker" type="color" value="#ff8c00" />
+          <label class="switch"
+            ><input id="led-toggle" type="checkbox" />
+            <span>LED On/Off</span></label
+          >
+        </div>
+      </section>
+
+      <section class="control-column" aria-label="Left and right controls">
+        <button type="button">Left</button>
+        <button type="button">Right</button>
+      </section>
+    </main>
+    <script>
+      const ledToggle = document.getElementById("led-toggle");
+
+      async function requestLedState(desiredState) {
+        const query =
+          typeof desiredState === "boolean" ? `?state=${desiredState}` : "";
+        const response = await fetch(`/led${query}`, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error("Request failed");
+        }
+        const payload = await response.json();
+        return Boolean(payload.state);
+      }
+
+      async function syncLedState() {
+        try {
+          const state = await requestLedState();
+          ledToggle.checked = state;
+        } catch (error) {
+          console.error("Failed to load LED state", error);
+        }
+      }
+
+      ledToggle.addEventListener("change", async (event) => {
+        const desired = event.target.checked;
+        try {
+          const confirmedState = await requestLedState(desired);
+          ledToggle.checked = confirmedState;
+        } catch (error) {
+          console.error("Failed to update LED state", error);
+          event.target.checked = !desired;
+          alert("Unable to reach rover LED controller.");
+        }
+      });
+
+      window.addEventListener("DOMContentLoaded", syncLedState);
+    </script>
+  </body>
+</html>

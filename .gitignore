@@ -1,0 +1,12 @@
+# PlatformIO build / state
+.pio
+.pioenvs
+.piolibdeps
+.platformio-home
+
+# IDE files
+.idea
+.vscode
+
+# macOS cruft
+.DS_Store

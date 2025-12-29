@@ -1,0 +1,9 @@
+{
+  "rules": {
+    "indent-style": ["error", "nonmixed"],
+    "indent-width": ["error", 2],
+    "id-class-style": false,
+    "id-style": ["error", "dash"],
+    "class-style": ["error", "dash"]
+  }
+}

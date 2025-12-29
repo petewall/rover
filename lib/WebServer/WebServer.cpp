@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "LED.h"
+#include "Battery.h"
 #include "hardware.h"
 
 namespace {
@@ -33,8 +34,8 @@ String buildColorPayload(uint8_t r, uint8_t g, uint8_t b) {
 
 }  // namespace
 
-WebServer::WebServer(LED* led)
-    : asyncWebServer(nullptr), led(led) {
+WebServer::WebServer(LED* led, Battery* battery)
+    : asyncWebServer(nullptr), led(led), battery(battery) {
   asyncWebServer = new AsyncWebServer(80);
   // Mount LittleFS and serve static files from it (default to index.html)
 #if defined(ESP8266)
@@ -79,6 +80,23 @@ WebServer::WebServer(LED* led)
                       buildColorPayload(this->led->getRed(),
                                         this->led->getGreen(),
                                         this->led->getBlue()));
+      });
+
+  asyncWebServer->on(
+      "/battery", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        if (this->battery == nullptr) {
+          request->send(500, "application/json",
+                        "{\"error\":\"battery sensor unavailable\"}");
+          return;
+        }
+        const float voltage = this->battery->readVoltage();
+        const float percent = this->battery->readPercentage();
+        String payload = "{\"voltage\":";
+        payload += voltage;
+        payload += ",\"percent\":";
+        payload += percent;
+        payload += "}";
+        request->send(200, "application/json", payload);
       });
 
   asyncWebServer->begin();

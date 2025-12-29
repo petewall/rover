@@ -136,9 +136,10 @@
         <div class="battery" aria-label="Battery level">
           <h2>Battery</h2>
           <div class="battery-bar">
-            <div class="battery-level" aria-hidden="true"></div>
-            <span>75%</span>
+            <div id="battery-level" class="battery-level" aria-hidden="true"></div>
+            <span id="battery-percent">--%</span>
           </div>
+          <small id="battery-voltage">--.- V</small>
         </div>
 
         <div class="lights-panel" aria-label="Lighting controls">
@@ -153,6 +154,9 @@
       </section>
     </main>
     <script>
+      const batteryLevel = document.getElementById("battery-level");
+      const batteryPercentText = document.getElementById("battery-percent");
+      const batteryVoltageText = document.getElementById("battery-voltage");
       const colorPicker = document.getElementById("color-picker");
 
       const clampColor = (value) =>
@@ -194,6 +198,27 @@
         };
       }
 
+      async function requestBattery() {
+        const response = await fetch("/battery", { cache: "no-store" });
+        if (!response.ok) throw new Error("Battery request failed");
+        return response.json();
+      }
+
+      async function syncBattery() {
+        try {
+          const { voltage, percent } = await requestBattery();
+          const clampedPercent = Math.max(0, Math.min(100, Number(percent)));
+          const roundedVoltage = Number(voltage).toFixed(2);
+          batteryLevel.style.width = `${clampedPercent}%`;
+          batteryPercentText.textContent = `${Math.round(clampedPercent)}%`;
+          batteryVoltageText.textContent = `${roundedVoltage} V`;
+        } catch (error) {
+          console.error("Failed to load battery info", error);
+          batteryPercentText.textContent = "--%";
+          batteryVoltageText.textContent = "--.- V";
+        }
+      }
+
       async function syncColor() {
         try {
           const { r, g, b } = await requestColor();
@@ -212,7 +237,11 @@
         });
       });
 
-      window.addEventListener("DOMContentLoaded", syncColor);
+      window.addEventListener("DOMContentLoaded", () => {
+        syncColor();
+        syncBattery();
+        setInterval(syncBattery, 5000);
+      });
     </script>
   </body>
 </html>

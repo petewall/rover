@@ -33,6 +33,8 @@ DATA_FILES=$(shell find data -type f)
 uploadfs: .pio/build/rover/littlefs.bin
 	pio run --environment rover --target uploadfs
 
+uploadall: uploadfs upload
+
 CPP_FILES := ${SRC_FILES} ${LIB_FILES} ${INLCUDE_FILES} ${TEST_FILES}
 CSS_FILES := $(shell find data -name "*.css")
 HTML_FILES := $(shell find data -name "*.html")

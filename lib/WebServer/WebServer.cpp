@@ -10,14 +10,25 @@
 
 namespace {
 
-bool parseStateParam(const String& value) {
-  String normalized = value;
-  normalized.toLowerCase();
-  return normalized == "1" || normalized == "true" || normalized == "on";
+uint8_t clampColorComponent(const String& value) {
+  long parsed = value.toInt();
+  if (parsed < 0) {
+    parsed = 0;
+  } else if (parsed > 255) {
+    parsed = 255;
+  }
+  return static_cast<uint8_t>(parsed);
 }
 
-String buildStatePayload(bool state) {
-  return String("{\"state\":") + (state ? "true" : "false") + "}";
+String buildColorPayload(uint8_t r, uint8_t g, uint8_t b) {
+  String payload = "{\"r\":";
+  payload += r;
+  payload += ",\"g\":";
+  payload += g;
+  payload += ",\"b\":";
+  payload += b;
+  payload += "}";
+  return payload;
 }
 
 }  // namespace
@@ -43,12 +54,31 @@ WebServer::WebServer(LED* led)
   asyncWebServer->serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
   asyncWebServer->on(
       "/led", HTTP_GET, [this](AsyncWebServerRequest* request) {
-        if (request->hasParam("state")) {
-          const String value = request->getParam("state")->value();
-          this->led->setState(parseStateParam(value));
+        uint8_t r = this->led->getRed();
+        uint8_t g = this->led->getGreen();
+        uint8_t b = this->led->getBlue();
+        bool updated = false;
+
+        if (request->hasParam("r")) {
+          r = clampColorComponent(request->getParam("r")->value());
+          updated = true;
+        }
+        if (request->hasParam("g")) {
+          g = clampColorComponent(request->getParam("g")->value());
+          updated = true;
+        }
+        if (request->hasParam("b")) {
+          b = clampColorComponent(request->getParam("b")->value());
+          updated = true;
+        }
+
+        if (updated) {
+          this->led->setColor(r, g, b);
         }
         request->send(200, "application/json",
-                      buildStatePayload(this->led->getState()));
+                      buildColorPayload(this->led->getRed(),
+                                        this->led->getGreen(),
+                                        this->led->getBlue()));
       });
 
   asyncWebServer->begin();

@@ -114,44 +114,6 @@
         font-weight: 600;
       }
 
-      .switch {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
-      }
-
-      .switch input[type="checkbox"] {
-        width: 46px;
-        height: 24px;
-        appearance: none;
-        border-radius: 999px;
-        background: #cfd6e3;
-        position: relative;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-
-      .switch input[type="checkbox"]::after {
-        content: "";
-        position: absolute;
-        top: 3px;
-        left: 3px;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: #fff;
-        transition: transform 0.2s;
-      }
-
-      .switch input[type="checkbox"]:checked {
-        background: #05c46b;
-      }
-
-      .switch input[type="checkbox"]:checked::after {
-        transform: translateX(22px);
-      }
-
       @media (max-width: 768px) {
         .controller {
           grid-template-columns: 1fr;
@@ -182,10 +144,6 @@
         <div class="lights-panel" aria-label="Lighting controls">
           <label for="color-picker">LED Color</label>
           <input id="color-picker" type="color" value="#ff8c00" />
-          <label class="switch"
-            ><input id="led-toggle" type="checkbox" />
-            <span>LED On/Off</span></label
-          >
         </div>
       </section>
 
@@ -195,41 +153,66 @@
       </section>
     </main>
     <script>
-      const ledToggle = document.getElementById("led-toggle");
+      const colorPicker = document.getElementById("color-picker");
 
-      async function requestLedState(desiredState) {
-        const query =
-          typeof desiredState === "boolean" ? `?state=${desiredState}` : "";
+      const clampColor = (value) =>
+        Math.max(0, Math.min(255, Number(value) || 0));
+
+      const rgbToHex = (r, g, b) =>
+        `#${[r, g, b]
+          .map((component) => component.toString(16).padStart(2, "0"))
+          .join("")}`;
+
+      const hexToRgb = (hex) => {
+        const sanitized = hex.replace("#", "");
+        if (sanitized.length !== 6) {
+          return { r: 0, g: 0, b: 0 };
+        }
+        return {
+          r: clampColor(parseInt(sanitized.substring(0, 2), 16)),
+          g: clampColor(parseInt(sanitized.substring(2, 4), 16)),
+          b: clampColor(parseInt(sanitized.substring(4, 6), 16)),
+        };
+      };
+
+      async function requestColor(color) {
+        let query = "";
+        if (color) {
+          const { r, g, b } = color;
+          query = `?r=${clampColor(r)}&g=${clampColor(g)}&b=${clampColor(b)}`;
+        }
+
         const response = await fetch(`/led${query}`, { cache: "no-store" });
         if (!response.ok) {
           throw new Error("Request failed");
         }
         const payload = await response.json();
-        return Boolean(payload.state);
+        return {
+          r: clampColor(payload.r ?? 0),
+          g: clampColor(payload.g ?? 0),
+          b: clampColor(payload.b ?? 0),
+        };
       }
 
-      async function syncLedState() {
+      async function syncColor() {
         try {
-          const state = await requestLedState();
-          ledToggle.checked = state;
+          const { r, g, b } = await requestColor();
+          colorPicker.value = rgbToHex(r, g, b);
         } catch (error) {
-          console.error("Failed to load LED state", error);
+          console.error("Failed to load LED color", error);
         }
       }
 
-      ledToggle.addEventListener("change", async (event) => {
-        const desired = event.target.checked;
-        try {
-          const confirmedState = await requestLedState(desired);
-          ledToggle.checked = confirmedState;
-        } catch (error) {
-          console.error("Failed to update LED state", error);
-          event.target.checked = !desired;
+      colorPicker.addEventListener("input", (event) => {
+        const { r, g, b } = hexToRgb(event.target.value);
+        requestColor({ r, g, b }).catch((error) => {
+          console.error("Failed to update LED color", error);
           alert("Unable to reach rover LED controller.");
-        }
+          syncColor();
+        });
       });
 
-      window.addEventListener("DOMContentLoaded", syncLedState);
+      window.addEventListener("DOMContentLoaded", syncColor);
     </script>
   </body>
 </html>

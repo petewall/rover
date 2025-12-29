@@ -1,24 +1,28 @@
 #include "LED.h"
 
-LED::LED(uint8_t pin)
-: state(false)
-{
-  strip = new Adafruit_NeoPixel(1, pin, NEO_GRB + NEO_KHZ800);
-  strip->begin();
-  strip->setBrightness(255);
-  this->setState(this->state);
-  strip->clear();
-  strip->show();
+LED::LED(uint8_t data_pin)
+    : strip(1, data_pin, NEO_GRB + NEO_KHZ800), r(0), g(0), b(0) {}
+
+void LED::begin() {
+  strip.begin();
 }
 
-void LED::setState(bool newState) {
-  state = newState;
-  if (state) {
-    strip->setPixelColor(0, strip->Color(255, 255, 255));
-  } else {
-    strip->setPixelColor(0, 0);
-  }
-  strip->show();
+void LED::setColor(uint8_t red, uint8_t green, uint8_t blue) {
+  r = red;
+  g = green;
+  b = blue;
+  update();
 }
 
-bool LED::getState() const { return state; }
+void LED::off() { setColor(0, 0, 0); }
+void LED::red() { setColor(255, 0, 0); }
+void LED::green() { setColor(0, 255, 0); }
+
+uint8_t LED::getRed() { return r; }
+uint8_t LED::getGreen() { return g; }
+uint8_t LED::getBlue() { return b; }
+
+void LED::update() {
+  strip.setPixelColor(0, strip.Color(r, g, b));
+  strip.show();
+}

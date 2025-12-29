@@ -16,10 +16,13 @@
 
 WebServer* webServer;
 
-#define BLINK_DELAY_MS 500
+#define BLINK_DELAY_MS 250
+#define READY_DELAY_MS 500
 
 bool ledState = false;
-LED *led;
+bool ready = false;
+bool reportedReady = false;
+LED* led = nullptr;
 
 void connectToWiFi(void) {
   WiFi.mode(WIFI_STA);
@@ -35,12 +38,16 @@ void connectToWiFi(void) {
   Serial.print("Connecting to ");
   Serial.println(WIFI_SSID);
   Serial.println("");
+}
 
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+void checkWiFiConnection() {
+  if (WiFi.status() != WL_CONNECTED) {
+    ready = false;
+    reportedReady = false;
     Serial.print(".");
+    return;
   }
+  ready = true;
   Serial.println("");
   Serial.print("Connected to ");
   Serial.println(WIFI_SSID);
@@ -53,7 +60,7 @@ void connectToWiFi(void) {
     } else {
       Serial.print("mDNS responder started: ");
       Serial.print(HOSTNAME);
-      Serial.println(".local");
+      Serial.println(".localdomain");
       MDNS.addService("http", "tcp", 80);
     }
   #endif
@@ -63,11 +70,13 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);  // Ensure LED is off on boot (active low)
 
+  led = new LED(RGB_LED_PIN);
+  led->begin();
+  led->off();
+
   Serial.begin(115200);
   Serial.println();
   Serial.println("Rover firmware booting...");
-
-  led = new LED(RGB_LED_PIN);
 
   connectToWiFi();
   webServer = new WebServer(led);
@@ -75,6 +84,15 @@ void setup() {
 
 void loop() {
   ledState = !ledState;
+  checkWiFiConnection();
+  if (!ready) {
+    ledState ? led->red() : led->off();
+  } else if (!reportedReady && ledState) {
+    led->green();
+    delay(READY_DELAY_MS);
+    led->off();
+    reportedReady = true;
+  }
   digitalWrite(LED_PIN, ledState ? LOW : HIGH);
   delay(BLINK_DELAY_MS);
 }

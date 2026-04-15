@@ -12,10 +12,6 @@
 // Internal libraries
 #include "hardware.h"
 #include "Battery.h"
-#include "LED.h"
-#include "WebServer.h"
-
-WebServer* webServer;
 
 #define BLINK_DELAY_MS 250
 #define READY_DELAY_MS 500
@@ -24,7 +20,6 @@ WebServer* webServer;
 bool ledState = false;
 bool ready = false;
 bool reportedReady = false;
-LED* led = nullptr;
 Battery* battery = nullptr;
 unsigned long lastBatteryLog = 0;
 
@@ -76,10 +71,6 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);  // Ensure LED is off on boot (active low)
 
-  led = new LED(RGB_LED_PIN);
-  led->begin();
-  led->off();
-
   battery = new Battery(BATTERY_ADC_PIN);
 
   Serial.begin(115200);
@@ -87,18 +78,16 @@ void setup() {
   Serial.println("Rover firmware booting...");
 
   connectToWiFi();
-  webServer = new WebServer(led, battery);
 }
 
 void loop() {
   ledState = !ledState;
   checkWiFiConnection();
   if (!ready) {
-    ledState ? led->red() : led->off();
+    digitalWrite(LED_PIN, ledState ? LOW : HIGH);
   } else if (!reportedReady && ledState) {
-    led->green();
+    digitalWrite(LED_PIN, ledState ? LOW : HIGH);
     delay(READY_DELAY_MS);
-    led->off();
     reportedReady = true;
   }
   digitalWrite(LED_PIN, ledState ? LOW : HIGH);

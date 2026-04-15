@@ -1,4 +1,5 @@
 SHELL = /bin/bash
+FIRMWARE_NAME = garbage-can-tilt-sensor
 .PHONY: build buildfs check clean test set-pipeline upload uploadfs \
 	lint lint-cpp lint-css lint-html
 
@@ -15,23 +16,23 @@ test: platformio.ini ${SRC_FILES} ${TEST_FILES}
 
 check: lint-cpp
 
-build: .pio/build/rover/firmware.bin
+build: .pio/build/$(FIRMWARE_NAME)/firmware.bin
 
-.pio/build/rover/firmware.bin: platformio.ini ${SRC_FILES} ${LIB_FILES} ${INLCUDE_FILES}
-	pio run --environment rover
+.pio/build/$(FIRMWARE_NAME)/firmware.bin: platformio.ini ${SRC_FILES} ${LIB_FILES} ${INLCUDE_FILES}
+	pio run --environment $(FIRMWARE_NAME)
 
-upload: platformio.ini .pio/build/rover/firmware.bin
-	pio run --environment rover --target upload
+upload: platformio.ini .pio/build/$(FIRMWARE_NAME)/firmware.bin
+	pio run --environment $(FIRMWARE_NAME) --target upload
 
-buildfs: .pio/build/rover/littlefs.bin
+buildfs: .pio/build/$(FIRMWARE_NAME)/littlefs.bin
 
 DATA_FILES=$(shell find data -type f)
-.pio/build/rover/littlefs.bin: platformio.ini $(DATA_FILES)
-	pio run --environment rover --target buildfs
+.pio/build/$(FIRMWARE_NAME)/littlefs.bin: platformio.ini $(DATA_FILES)
+	pio run --environment $(FIRMWARE_NAME) --target buildfs
 
 # Upload LittleFS filesystem image from ./public to the device
-uploadfs: .pio/build/rover/littlefs.bin
-	pio run --environment rover --target uploadfs
+uploadfs: .pio/build/$(FIRMWARE_NAME)/littlefs.bin
+	pio run --environment $(FIRMWARE_NAME) --target uploadfs
 
 uploadall: uploadfs upload
 

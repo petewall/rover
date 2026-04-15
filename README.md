@@ -13,11 +13,12 @@ PlatformIO project that targets the Wemos D1 mini (ESP8266) and provides a start
 
 From the project root:
 
-1. **Build:** `pio run`
-2. **Upload:** Connect the D1 mini over USB and run `pio run --target upload`
-3. **Monitor (optional):** `pio device monitor --baud 115200`
+1. **Build:** `make build`
+2. **Upload Data files:** Connect the D1 mini over USB and run `make uploadfs`
+3. **Upload:** Connect the D1 mini over USB and run `make upload`
+4. **Monitor (optional):** `pio device monitor --baud 115200`
 
-PlatformIO automatically selects the `d1_mini` environment defined in `platformio.ini`. If you add other environments later, you can build or upload them with `pio run -e <env-name>`.
+PlatformIO automatically selects the `rover` environment defined in `platformio.ini`. If you add other environments later, you can build or upload them with `pio run -e <env-name>`.
 
 ## Project Layout
 
